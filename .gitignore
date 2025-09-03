@@ -1,0 +1,6 @@
+.env
+
+node_modules
+
+# Built data -- this is kept as make cache of sorts, but we don't want it in git
+data/*
