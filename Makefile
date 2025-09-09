@@ -1,5 +1,5 @@
 .PHONY: all
-all: data/books.csv
+all: data/books.csv data/warehouses.csv 
 
 .PHONY: clean
 clean:
@@ -13,4 +13,7 @@ deps:
 # We probably want to generate data using faker or fetch prefetched .csv from a bucket or smtn
 data/books.csv: deps
 	python fetch_book_data.py
+
+data/warehouses.csv: deps
+	python generate_warehouse_data.py
 
