@@ -1,5 +1,5 @@
 .PHONY: all
-all: data/books.csv data/warehouses.csv 
+all: data/books.csv data/warehouses.csv data/notes.csv
 
 .PHONY: clean
 clean:
@@ -16,4 +16,7 @@ data/books.csv: deps
 
 data/warehouses.csv: deps
 	python generate_warehouse_data.py
+
+data/notes.csv: deps
+	python generate_note_data.py
 
