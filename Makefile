@@ -1,5 +1,5 @@
 .PHONY: all
-all: data/books.csv data/warehouses.csv data/notes.csv
+all: deps data/books.csv data/warehouses.csv data/notes.csv data/book_transactions.csv
 
 .PHONY: clean
 clean:
@@ -11,15 +11,17 @@ deps:
 
 # NOTE: this currently doesn't work as we'd want it to (google API is severely rate-limited)
 # We probably want to generate data using faker or fetch prefetched .csv from a bucket or smtn
-data/books.csv: deps
+data/books.csv: 
 	python fetch_book_data.py
 
-data/warehouses.csv: deps
+data/warehouses.csv: 
 	python generate_warehouse_data.py
 
-data/notes.csv: deps
+data/notes_prelim.csv: 
 	python generate_note_data.py
 
-data/book_transactions.csv: deps
+data/book_transactions.csv data/notes.csv: data/books.csv data/warehouses.csv data/notes_prelim.csv
 	python generate_book_transactions.py
+
+
 

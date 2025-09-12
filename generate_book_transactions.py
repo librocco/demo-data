@@ -33,7 +33,7 @@ def gem_weights(alpha: float, trunc_n=1_000, trunc_beta: float | None = None):
 
 df_books = pd.read_csv("./data/books.csv")
 df_warehouses = pd.read_csv("./data/warehouses.csv")
-df_notes = pd.read_csv("./data/notes.csv")
+df_notes = pd.read_csv("./data/notes_prelim.csv")
 
 n_books = len(df_books)
 n_notes = len(df_notes)
@@ -177,12 +177,14 @@ recon_note_index = note_ttls_index[non_empty_recon_mask]
 
 # In order to index a reconciliatin notes to the correct note (which note will this reconciliation note precede)
 # we need to reindex the note with respect to notes existing in prelimitary df
-recon_note_ts = df_notes["committed_at"][recon_note_index / 2]
+recon_note_ts = pd.Series(
+    pd.to_datetime(df_notes["committed_at"][recon_note_index / 2], unit="ms")
+)
 
 df_recon_notes = pd.DataFrame({
     "id": 0,  # Not important here, we're reindexing later anyway
-    # TODO: update this after the note generating script is updated to store ms values (not ts)
-    "display_name": "Reconciliation note: " + recon_note_ts,
+    "display_name": "Reconciliation note: "
+    + recon_note_ts.dt.strftime("%Y-%m-%d %H:%M:%S"),
     "warehouse_id": 0,
     "is_reconciliation_note": 1,
     "default_warehouse": 0,
@@ -262,16 +264,6 @@ committed_at = df_notes["committed_at"].to_numpy()[note_index]
 # 	committed_at INTEGER,
 # );
 
-np.array([
-    len(isbn),
-    len(quantity),
-    len(note_id),
-    len(warehouse_id),
-    len(updated_at),
-    len(committed_at),
-]).min()
-
-
 df_transactions = pd.DataFrame({
     "isbn": isbn,
     "quantity": quantity,
@@ -306,4 +298,4 @@ df_notes = df_notes[
         "n_books",
     ]
 ]
-df_notes.to_csv("./data/notes-final.csv", index=False)
+df_notes.to_csv("./data/notes.csv", index=False)

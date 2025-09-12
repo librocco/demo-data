@@ -91,7 +91,9 @@ df["_committed_threshold"] = np.exp(df["_days_to_last"] * np.log(0.5))
 df["committed"] = (df["_committed_rand"] > df["_committed_threshold"]).astype(int)
 
 # Committed at (if committed) 10mins after updated at
-df.loc[df["committed"] == 1, "committed_at"] = df["updated_at"] + pd.to_timedelta("10m")
+df.loc[df["committed"] == 1, "committed_at"] = df["updated_at"] + pd.to_timedelta(
+    "10 min"
+)
 
 df.drop(
     columns=["_inbound", "_committed_rand", "_days_to_last", "_committed_threshold"],
@@ -99,6 +101,8 @@ df.drop(
 )
 
 df["updated_at"] = df["updated_at"].astype(np.int64) // 10**6
-df["committed_at"] = df["committed_at"].astype("Int64") // 10**6
+df["committed_at"] = df["committed_at"].astype(np.int64) // 10**6
+# Negative timestamp is a consequence of pd.NaT, we convert those to pd.NA (corresponding to NULL when it gets to SQLite)
+df.loc[df["committed_at"] < 0, "committed_at"] = pd.NA
 
-df.to_csv("./data/notes.csv", index=False)
+df.to_csv("./data/notes_prelim.csv", index=False)
