@@ -20,3 +20,6 @@ data/warehouses.csv: deps
 data/notes.csv: deps
 	python generate_note_data.py
 
+data/book_transactions.csv: deps
+	python generate_book_transactions.py
+
