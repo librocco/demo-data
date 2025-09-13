@@ -1,0 +1,3 @@
+[submodule "cr-sqlite"]
+	path = cr-sqlite
+	url = git@github.com:vlcn-io/cr-sqlite
