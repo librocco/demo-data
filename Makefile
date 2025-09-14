@@ -1,5 +1,7 @@
 dir.crsql := $(CURDIR)/cr-sqlite
 
+DATA_DIR := data
+
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	SQLITE_FILE_EXT := dylib
@@ -9,11 +11,11 @@ endif
 CRSQL_LOADABLE := $(dir.crsql)/core/dist/crsqlite.$(SQLITE_FILE_EXT)
 
 .PHONY: all
-all: submodules deps data/books.csv data/warehouses.csv data/notes.csv data/book_transactions.csv
+all: submodules deps $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv $(DATA_DIR)/notes.csv $(DATA_DIR)/book_transactions.csv  $(DATA_DIR)/demo_db.sqlite3
 
 .PHONY: clean
 clean:
-	rm -f data/*
+	rm -f $(DATA_DIR)/*
 
 .PHONY: spotless
 spotless: clean
@@ -27,26 +29,28 @@ submodules:
 deps:
 	pip install -r requirements.txt
 
-# NOTE: this currently doesn't work as we'd want it to (google API is severely rate-limited)
-# We probably want to generate data using faker or fetch prefetched .csv from a bucket or smtn
-data/books.csv: 
-	python buf.py
+$(DATA_DIR): 
+	mkdir -p $@
 
-data/warehouses.csv: 
+$(DATA_DIR)/books.csv: $(DATA_DIR)
+	@if [ -z "$(BOOKS_CSV_URL)" ]; then \
+		echo "Error: BOOKS_CSV_URL is not set"; \
+		exit 1; \
+	fi; \
+  curl -L "$(BOOKS_CSV_URL)" -o $@
+
+$(DATA_DIR)/warehouses.csv: $(DATA_DIR)
 	python generate_warehouse_data.py
 
-data/notes_prelim.csv: 
+$(DATA_DIR)/notes_prelim.csv: $(DATA_DIR)
 	python generate_note_data.py
 
-data/book_transactions.csv data/notes.csv: data/books.csv data/warehouses.csv data/notes_prelim.csv
+$(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv: $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv $(DATA_DIR)/notes_prelim.csv
 	python generate_book_transactions.py
 
-data/demo_db.sqlite3: $(CRSQL_LOADABLE) data/book_transactions.csv data/notes.csv data/books.csv data/warehouses.csv 
-	sqlite3 data/demo_db.sqlite3<init.sql
+$(DATA_DIR)/demo_db.sqlite3: $(CRSQL_LOADABLE) $(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv 
+	sqlite3 $(DATA_DIR)/demo_db.sqlite3<schema.sql
 	python load_db.py
 
 $(CRSQL_LOADABLE): 
 	cd $(dir.crsql) && make
-
-
-
