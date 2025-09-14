@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 SQLITE_FILE = "sqlite:///data/demo_db.sqlite3"
 
@@ -51,6 +52,9 @@ drop_excess_cols(
         "committed_at",
     ],
 )
+
+# NOTE: Make sure warehouse 0 = NULL in the DB (outbound notes)
+df_notes.loc[df_notes["warehouse_id"] == 0, "warehouse_id"] = np.nan
 df_notes.to_sql("note", SQLITE_FILE, if_exists="append", index=False)
 
 df_book_transactions = pd.read_csv("data/book_transactions.csv")
