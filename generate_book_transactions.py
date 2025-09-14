@@ -45,7 +45,7 @@ n_warehouses = len(df_warehouses)
 weights = gem_weights(30, 300, 1 / 200)
 catalogue_size = len(weights)
 # Draw "atoms" from the full ISBN list -- assigning a particular weight (probability mass) to each
-catalogue_index = np.random.randint(0, n_books, size=catalogue_size, dtype=int)
+catalogue_index = np.random.permutation(np.arange(n_books))[:catalogue_size]
 
 K = n_warehouses
 """Number of warehouses"""
