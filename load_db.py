@@ -24,7 +24,7 @@ drop_excess_cols(
         "updated_at",
     ],
 )
-df_books.to_sql("book", SQLITE_FILE, if_exists="replace", index=False)
+df_books.to_sql("book", SQLITE_FILE, if_exists="append", index=False)
 
 df_warehouses = pd.read_csv("data/warehouses.csv")
 drop_excess_cols(
@@ -35,7 +35,7 @@ drop_excess_cols(
         "discount",
     ],
 )
-df_warehouses.to_sql("warehouse", SQLITE_FILE, if_exists="replace", index=False)
+df_warehouses.to_sql("warehouse", SQLITE_FILE, if_exists="append", index=False)
 
 df_notes = pd.read_csv("data/notes.csv")
 drop_excess_cols(
@@ -51,7 +51,7 @@ drop_excess_cols(
         "committed_at",
     ],
 )
-df_notes.to_sql("note", SQLITE_FILE, if_exists="replace", index=False)
+df_notes.to_sql("note", SQLITE_FILE, if_exists="append", index=False)
 
 df_book_transactions = pd.read_csv("data/book_transactions.csv")
 drop_excess_cols(
@@ -66,5 +66,5 @@ drop_excess_cols(
     ],
 )
 df_book_transactions.to_sql(
-    "book_transaction", SQLITE_FILE, if_exists="replace", index=False
+    "book_transaction", SQLITE_FILE, if_exists="append", index=False
 )
