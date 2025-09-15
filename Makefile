@@ -22,17 +22,17 @@ deps:
 $(DATA_DIR): 
 	mkdir -p $@
 
-$(DATA_DIR)/books.csv: $(DATA_DIR)
+$(DATA_DIR)/books.csv: | $(DATA_DIR)
 	@if [ -z "$(BOOKS_CSV_URL)" ]; then \
 		echo "Error: BOOKS_CSV_URL is not set"; \
 		exit 1; \
 	fi; \
   curl -L "$(BOOKS_CSV_URL)" -o $@
 
-$(DATA_DIR)/warehouses.csv: $(DATA_DIR)
+$(DATA_DIR)/warehouses.csv: | $(DATA_DIR)
 	python generate_warehouse_data.py
 
-$(DATA_DIR)/notes_prelim.csv: $(DATA_DIR)
+$(DATA_DIR)/notes_prelim.csv: | $(DATA_DIR)
 	python generate_note_data.py
 
 $(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv: $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv $(DATA_DIR)/notes_prelim.csv
