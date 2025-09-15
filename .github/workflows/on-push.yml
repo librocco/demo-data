@@ -1,0 +1,14 @@
+name: Make check
+"on":
+  push
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Make the DB
+      shell: bash
+      env:
+        BOOKS_CSV_URL: ${{ secrets.BOOKS_CSV_URL }}
+      run: make
