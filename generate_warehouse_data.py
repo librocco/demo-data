@@ -17,7 +17,7 @@ warehouses = np.array([
     "Used books (2025)",
     "New books (2025)",
 ])
-discounts = np.array([0.2, 0, 0.15, 0, 0.10, 0, 0.05, 0])
+discounts = np.array([20, 0, 15, 0, 10, 0, 5, 0])
 n_warehouses = len(warehouses)
 df = pd.DataFrame({
     "id": np.arange(1, n_warehouses + 1),
