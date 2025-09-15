@@ -1,14 +1,4 @@
-dir.crsql := $(CURDIR)/cr-sqlite
-
 DATA_DIR := data
-
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-	SQLITE_FILE_EXT := dylib
-else 
-	SQLITE_FILE_EXT := so
-endif
-CRSQL_LOADABLE := $(dir.crsql)/core/dist/crsqlite.$(SQLITE_FILE_EXT)
 
 .PHONY: all
 all: submodules deps $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv $(DATA_DIR)/notes.csv $(DATA_DIR)/book_transactions.csv  $(DATA_DIR)/demo_db.sqlite3
@@ -48,9 +38,7 @@ $(DATA_DIR)/notes_prelim.csv: $(DATA_DIR)
 $(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv: $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv $(DATA_DIR)/notes_prelim.csv
 	python generate_book_transactions.py
 
-$(DATA_DIR)/demo_db.sqlite3: $(CRSQL_LOADABLE) $(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv 
+$(DATA_DIR)/demo_db.sqlite3: $(DATA_DIR)/book_transactions.csv $(DATA_DIR)/notes.csv $(DATA_DIR)/books.csv $(DATA_DIR)/warehouses.csv 
 	sqlite3 $(DATA_DIR)/demo_db.sqlite3<schema.sql
 	python load_db.py
 
-$(CRSQL_LOADABLE): 
-	cd $(dir.crsql) && make
