@@ -1,42 +1,47 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = [
+#   "pandas",
+#   "requests",
+# ]
+# ///
+
 from random import randint
-from googleapiclient.discovery import build
-from dotenv import load_dotenv
+import requests
 import os
-import asyncio
 import pandas as pd
 import time
 
-
-load_dotenv()
+# API key is optional - without it, requests are rate-limited but still work
 API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
-if API_KEY is None:
-    raise ValueError("GOOGLE_BOOKS_API_KEY environment variable not set")
 
-svc = build("books", "v1", developerKey=API_KEY)
+BOOKS_API_URL = "https://www.googleapis.com/books/v1/volumes"
 
 
-def get_books_page(pageIx: int, res_per_page: int = 40):
+def get_books_page(pageIx: int, query: str = "intitle:the", res_per_page: int = 40):
     offset = pageIx * res_per_page
 
     fields = ",".join([
-        "volumeInfo/industryIdentifiers",
-        "volumeInfo/title",
-        "volumeInfo/authors",
-        "volumeInfo/publisher",
-        "volumeInfo/publishedDate",
-        "volumeInfo/categories",
+        "items/volumeInfo/industryIdentifiers",
+        "items/volumeInfo/title",
+        "items/volumeInfo/authors",
+        "items/volumeInfo/publisher",
+        "items/volumeInfo/publishedDate",
+        "items/volumeInfo/categories",
     ])
 
-    return (
-        svc.volumes()
-        # Using 'the' hack:
-        # - Google books API doesn't allow for empty queries (there has to be a non-empty search string)
-        # - using the most common word in English (especially in book titles): 'the' achieves the similar effect
-        .list(
-            q="intitle:the", fields=f"items({fields})", maxResults=40, startIndex=offset
-        )
-        .execute()
-    )
+    params = {
+        "q": query,
+        "fields": fields,
+        "maxResults": 40,
+        "startIndex": offset,
+    }
+    if API_KEY:
+        params["key"] = API_KEY
+
+    response = requests.get(BOOKS_API_URL, params=params)
+    response.raise_for_status()
+    return response.json()
 
 
 def get_isbn10(industry_identifiers: list[dict[str, str]]):
@@ -92,51 +97,65 @@ def process_items(items: list):
             yield volume
 
 
-async def main():
+def fetch_with_retry(page_ix: int, query: str = "intitle:the", max_retries: int = 3, base_delay: float = 1.0):
+    """Fetch a page with exponential backoff on failure."""
+    for attempt in range(max_retries):
+        try:
+            return get_books_page(page_ix, query=query)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code in (429, 503) and attempt < max_retries - 1:
+                delay = base_delay * (2 ** attempt)
+                print(f"    Rate limited, waiting {delay}s...")
+                time.sleep(delay)
+            else:
+                raise
+
+
+def main():
     start = time.time()
 
-    # books_to_fetch = 20_000
-    # num_pages = books_to_fetch // 40
-
-    # if books_to_fetch % 40 != 0:
-    #     num_pages += 1
-
-    num_pages = 100
-
-    lock = asyncio.Lock()
-    counter = 0
-
-    def fetch_page(page_ix: int, total_pages: int):
-        nonlocal counter
-
-        res = get_books_page(page_ix)
-
-        counter += 1
-        print(f"progress: {counter}/{total_pages}")
-
-        return res
-
-    tasks = [asyncio.create_task(fetch_page(i, num_pages)) for i in range(num_pages)]
-    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
-
-    for task in done:
-        if task.exception():
-            for p in pending:
-                p.cancel()
-            raise task.exception()
-
-    results = (t.result() for t in done)
-
-    # results = await asyncio.gather(
-    #     *(fetch_page(i, num_pages) for i in range(num_pages))
-    # )
-
-    df = pd.DataFrame((item for res in results for item in process_items(res["items"])))
+    # Google Books API has a pagination limit (~1000 results max per query)
+    # Use multiple search queries to get more diverse results
+    queries = [
+        "intitle:the",
+        "intitle:and",
+        "intitle:of",
+        "intitle:to",
+        "intitle:a",
+        "subject:fiction",
+        "subject:science",
+        "subject:history",
+        "subject:biography",
+        "subject:philosophy",
+    ]
+    pages_per_query = 10  # 10 pages * 40 results = 400 per query
+    results = []
 
     os.makedirs("data", exist_ok=True)
+
+    for query in queries:
+        print(f"\nFetching: {query}")
+        for i in range(pages_per_query):
+            try:
+                res = fetch_with_retry(i, query=query)
+                results.append(res)
+                print(f"  page {i + 1}/{pages_per_query}")
+                time.sleep(0.1)
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 400:
+                    print(f"  Hit pagination limit at page {i}")
+                    break
+                raise
+
+    df = pd.DataFrame((item for res in results for item in process_items(res.get("items", []))))
+    # Remove duplicates by ISBN
+    df = df.drop_duplicates(subset=["isbn"])
+
     df.to_csv("data/books.csv", index=False)
 
-    print(f"took: {time.time() - start:.2f} seconds")
+    print(f"\ntook: {time.time() - start:.2f} seconds")
+    print(f"fetched {len(df)} unique books")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    main()
