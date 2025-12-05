@@ -76,6 +76,7 @@ drop_excess_cols(
         "warehouse_id",
         "updated_at",
         "committed_at",
+        "last_bubbled_up",
     ],
 )
 df_book_transactions.to_sql(

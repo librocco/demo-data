@@ -6,7 +6,7 @@ Generates a demo SQLite database for librocco with realistic book inventory data
 
 This pipeline creates demo data by:
 
-1. **Downloading book metadata** from a pre-generated CSV (originally fetched from Google Books API)
+1. **Using book metadata** from `data/books.csv` (checked in, fetched from Google Books API)
 2. **Generating warehouse data** - 8 warehouses representing used/new books across years 2022-2025
 3. **Generating notes** - ~15,000 inventory notes (inbound purchases and outbound sales)
 4. **Generating transactions** - Book transactions with realistic statistical distributions
@@ -25,40 +25,38 @@ The data generation uses several statistical techniques for realism:
 
 The database schema is downloaded directly from the main librocco repository at build time:
 ```
-https://raw.githubusercontent.com/librocco/librocco/refs/heads/main/apps/sync-server/schemas/init
+https://raw.githubusercontent.com/librocco/librocco/main/apps/sync-server/schemas/init
 ```
 
-The `crsql_as_crr` calls are filtered out since plain SQLite doesn't have the CRSQLite extension.
+The `crsql_as_crr` and `crsql_finalize` calls are filtered out since plain SQLite doesn't have the CRSQLite extension.
 
 This ensures the demo database always matches the current application schema.
 
 ## Prerequisites
 
 - [`uv`](https://docs.astral.sh/uv/) - Python package manager (scripts use inline deps)
-- `curl` - For downloading files
+- `curl` - For downloading schema
 - `sqlite3` - CLI tool for database creation
-- `BOOKS_CSV_URL` environment variable - URL to pre-generated books.csv (for CI)
 
 ## Usage
 
-### Build the demo database (CI/production)
+### Build the demo database
 
 ```bash
-BOOKS_CSV_URL=<url> make
+make
 ```
 
-Or set the env var in `.env` or export it.
+Output: `data/demo_db.sqlite3`
 
-### Build locally (fetch books from Google Books API)
+### Refresh book catalog (optional)
+
+The book catalog (`data/books.csv`) is checked into git. To regenerate it from Google Books API:
 
 ```bash
 ./fetch_book_data.py  # Fetches ~600+ books (rate-limited without API key)
-make                  # Skips books.csv download since it exists
 ```
 
 Optionally set `GOOGLE_BOOKS_API_KEY` for higher rate limits.
-
-Output: `data/demo_db.sqlite3`
 
 ### Clean generated files
 
@@ -77,14 +75,12 @@ make data/demo_db.sqlite3   # Build final database
 ## Pipeline Overview
 
 ```
-BOOKS_CSV_URL ─────────────────────────────────────────┐
-                                                       │
-GitHub (schema) ──────────────────────────────────────┐│
-                                                      ││
-                                                      ▼▼
+GitHub (schema) ──────────────────────────────────────┐
+                                                      │
+                                                      ▼
 ┌─────────────────────────┐    ┌────────────────────────────────┐
 │ generate_warehouse_data │    │         books.csv              │
-│          .py            │    │    (downloaded from URL)       │
+│          .py            │    │       (checked in)             │
 └───────────┬─────────────┘    └───────────────┬────────────────┘
             │                                  │
             ▼                                  │
@@ -160,4 +156,4 @@ GitHub (schema) ─────────────────────�
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/on-push.yml` builds the database on every push using the `BOOKS_CSV_URL` secret.
+The workflow in `.github/workflows/on-push.yml` builds the database on every push to verify the pipeline works.
