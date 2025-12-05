@@ -1,3 +1,11 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = [
+#   "pandas",
+#   "numpy",
+# ]
+# ///
+
 import pandas as pd
 import numpy as np
 
